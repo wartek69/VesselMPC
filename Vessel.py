@@ -1,6 +1,6 @@
 import math
 
-
+secondsPerMin = 60;
 class Vessel:
     # x and y in meters!
     # speed m/s
@@ -14,9 +14,9 @@ class Vessel:
         self.rot_change = rot_change
 
     def simulate(self, rrot, delta_t = 1):
-        self.x = self.x + math.sin(self.heading / (180 * math.pi)) * self.speed * delta_t
-        self.y = self.y + math.cos(self.heading / (180 * math.pi)) * self.speed * delta_t
-        self.heading = (self.heading + self.rot * delta_t) % 360
+        self.x = self.x + math.sin(self.heading / 180 * math.pi) * self.speed * delta_t
+        self.y = self.y + math.cos(self.heading / 180 * math.pi) * self.speed * delta_t
+        self.heading = (self.heading + self.rot / secondsPerMin * delta_t) % 360
         if self.rot < rrot:
             self.rot = self.rot + self.rot_change * delta_t
             if self.rot > rrot:
@@ -26,4 +26,5 @@ class Vessel:
             if self.rot < rrot:
                 self.rot = rrot
         else:
-            self.rot = rrot
+            self.rot = self.rot
+
