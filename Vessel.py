@@ -21,19 +21,19 @@ class Vessel:
     # adds noise to the simulated values
     def simulate_noisy(self, rrot, delta_t = 1):
         rrot = self.__clamp(rrot)
-        self.x = self.x + math.sin(self.heading / 180 * math.pi) * self.speed * delta_t + randint(-1,1)
-        self.y = self.y + math.cos(self.heading / 180 * math.pi) * self.speed * delta_t + randint(-1,1)
-        self.heading = (self.heading + self.rot / secondsPerMin * delta_t) % 360 + random.uniform(-1,1)
+        self.x = self.x + math.sin(self.heading / 180 * math.pi) * self.speed * delta_t + random.uniform(-0.1, 0.1)
+        self.y = self.y + math.cos(self.heading / 180 * math.pi) * self.speed * delta_t + random.uniform(-0.1, 0.1)
+        self.heading = (self.heading + self.rot / secondsPerMin * delta_t) % 360 + random.uniform(-0.1, 0.1)
         if self.rot < rrot:
-            self.rot = self.rot + self.rot_change * delta_t + random.uniform(-1,1)
+            self.rot = self.rot + self.rot_change * delta_t + random.uniform(-0.1, 0.1)
             if self.rot > rrot:
                 self.rot = rrot
         elif self.rot > rrot:
-            self.rot = self.rot - self.rot_change * delta_t + random.uniform(-1,1)
+            self.rot = self.rot - self.rot_change * delta_t + random.uniform(-0.1, 0.1)
             if self.rot < rrot:
                 self.rot = rrot
         else:
-            self.rot = self.rot + random.uniform(0,1)
+            self.rot = self.rot
 
     def simulate(self, rrot, delta_t = 1):
         rrot = self.__clamp(rrot)

@@ -5,6 +5,7 @@ from Coords import Coords
 from MPC import MPC
 from Vessel import Vessel
 import matplotlib.pyplot as plt
+import math
 
 heading = 20
 x = 0 # m
@@ -23,10 +24,29 @@ logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.DEBUG)
 
 
-def create_path():
-    for k in range(3000):
+def create_path_straight_line(length):
+    for k in range(length):
         px.append(k)
         py.append(k)
+
+def create_path_straight_line_up(length):
+    for k in range(length):
+        px.append(0)
+        py.append(k)
+
+def create_path_curve_disc(length):
+    for k in range(math.floor(length/2)):
+        px.append(0)
+        py.append(k)
+        l = k
+    for k in range(math.floor(length/2 + 1)):
+        px.append(k)
+        py.append(l)
+
+def create_path_curve_cont(length):
+    for k in range(length):
+        px.append(k)
+        py.append(k**2)
 
 if __name__ == '__main__':
     vessel = Vessel(x, y, rot, heading, speed, rot_change, rot_max, rot_min)
@@ -35,8 +55,8 @@ if __name__ == '__main__':
     x = []
     y = []
 
-    create_path()
-    while i < 1000:
+    create_path_curve_cont(1001)
+    while i < 4000:
         rrot = mpc.optimize_simple(px, py, vessel)
         vessel.simulate(rrot)
         x.append(vessel.x)
@@ -46,6 +66,8 @@ if __name__ == '__main__':
 
     plt.plot(px, py, 'bo', markersize = 1)
     plt.plot(x, y, 'ro', markersize = 1)
+    plt.gca().set_ylim([0, 4000])
+    plt.gca().set_xlim([-200, 200])
     plt.show()
     logger.debug(x)
     logger.debug(y)
