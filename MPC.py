@@ -166,10 +166,24 @@ class MPC:
         return xte_min, _closest_index
 
     def __get_heading_curve(self, px, py, k):
-        try:
-            angle = math.atan((px[k+1] - px[k]) / (py[k+1] - py[k])) / math.pi * 180
-        except ZeroDivisionError:
-            angle = 90
+        if py[k+1] > py[k]:
+            try:
+                angle = math.atan((px[k+1] - px[k]) / (py[k+1] - py[k])) / math.pi * 180
+            except ZeroDivisionError:
+                angle = 90
+        else:
+            try:
+                angle = math.atan((py[k+1] - py[k]) / (px[k+1] - px[k])) / math.pi * 180
+                # the angle abs value is greater than 90 degrees
+                if px[k+1] > px[k]:
+                    angle = math.fabs(angle) + 90
+                elif px[k+1] < px[k]:
+                    # the angle is negative
+                    angle += 90
+                    angle *= -1
+            except ZeroDivisionError:
+                angle = 180
+            print(angle)
         return angle
 
     # Calculate a rot based on index i
