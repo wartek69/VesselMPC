@@ -13,7 +13,7 @@ class MPC:
     rot2_max = 20
     rot2_min = -20
     rot2_dot = 2
-    prediction_horizon = 120
+    prediction_horizon = 240
     heading_weight = 25;
 
     def optimize(self, px, py, vessel_model):
@@ -183,7 +183,6 @@ class MPC:
                     angle *= -1
             except ZeroDivisionError:
                 angle = 180
-            print(angle)
         return angle
 
     # Calculate a rot based on index i

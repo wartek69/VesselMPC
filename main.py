@@ -2,14 +2,17 @@ import logging
 import sys
 import copy
 from Coords import Coords
+import numpy as np
 from MPC import MPC
 from Vessel import Vessel
 import matplotlib.pyplot as plt
 import math
+from scipy.interpolate import CubicSpline
 
-heading = 90.0
-x = 0 # m
-y = 0 # m
+
+heading = 30
+x = -500 # m
+y = -2500 # m
 rot = 0  # degree/min
 speed = 1 #m/s
 rot_change = 0.01 # degree/s/s
@@ -64,15 +67,12 @@ def create_path_curve_cont(length):
         py.append(-k**2)
 
 def create_path(length):
+    x = [0, 500, 2000, 4000]
+    y = [-1500, -800, -1800, 1200]
+    cs = CubicSpline(x, y)
     for k in range(length):
-        if k < length / 2:
-            px.append(k)
-            py.append(k^2)
-            l = k^2
-            p = k
-        else:
-            px.append(p)
-            py.append(k)
+        px.append(k)
+        py.append(cs(k))
 
 
 if __name__ == '__main__':
@@ -81,21 +81,18 @@ if __name__ == '__main__':
     i = 0
     x = []
     y = []
-
     create_path(2001)
     while i < 4000:
-        #rrot = mpc.optimize_simple(px, py, vessel)
-        vessel.simulate(rrot)
+        rrot = mpc.optimize_simple(px, py, vessel)
+        vessel.simulate_noisy(rrot)
         x.append(vessel.x)
         y.append(vessel.y)
         i += 1
-        if i == 2000:
-            pass
         logger.debug(i)
 
+    plt.plot(x, y, 'ro', markersize = 1)
     plt.plot(px, py, 'bo', markersize = 1)
-    #plt.plot(x, y, 'ro', markersize = 1)
-    #plt.gca().set_ylim([4000, -4000])
+    #plt.gca().set_ylim([8000, -8000])
     #plt.gca().set_xlim([-200, 200])
     plt.show()
     logger.debug(x)
