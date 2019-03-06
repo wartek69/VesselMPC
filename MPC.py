@@ -4,14 +4,14 @@ import copy
 import math
 class MPC:
     #tuning params
-    rot1_max = 20
-    rot1_min = -20
+    rot1_max = 10
+    rot1_min = -10
     rot1_dot = 2
     rot_tmax = 0.65
     rot_tmin = 0.35
     rot_tdot = 0.1
-    rot2_max = 20
-    rot2_min = -20
+    rot2_max = 10
+    rot2_min = -10
     rot2_dot = 2
     prediction_horizon = 240
     heading_weight = 25;
@@ -30,8 +30,10 @@ class MPC:
                             temp_model.simulate(i)
                         else:
                             temp_model.simulate(k)
-                    cost = (temp_model.heading - 45) ** 2 * self.heading_weight;
-                    cost += self.__calc_xte(px, py, temp_model)
+                    xte, closest_index = self.__calc_xte_improved(px, py, temp_model)
+                    cost = self.angular_diff(temp_model.heading,
+                                             self.__get_heading_curve(px, py, closest_index)) ** 2 * self.heading_weight
+                    cost += xte
                     if cost < min_cost:
                         min_cost = cost
                         best_rot = i

@@ -15,7 +15,7 @@ PilotHDT = 10
 TrackROT = 11
 TrackHDT = 12
 XTE = 13
-file = '20190225.cnr'
+file = 'Acali.NML'
 f = open('data/' + file)
 
 data = defaultdict(lambda: [0] * 14)
@@ -65,7 +65,7 @@ for line in f.readlines():
 
   lastTime = time
 f.close();
-f = open('output/'+file, 'w+')
+f = open('output/'+file+'out', 'w+')
 f.write('Time,Lon,Lat,Speed,Heading,Course,ROT,Rudder,PilotActive,ReqROT,ReqRudder,HeadingInPilot,TrackROT,TrackCourse,XTE\n')
 print('Time,Lon,Lat,Speed,Heading,Course,ROT,Rudder,PilotActive,ReqROT,ReqRudder,HeadingInPilot,TrackROT,TrackCourse,XTE')
 for time in data:
@@ -103,3 +103,4 @@ for time in data:
       data[time][TrackHDT],
       data[time][XTE]
   ))
+  f.close()
