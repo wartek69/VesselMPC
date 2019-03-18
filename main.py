@@ -8,6 +8,8 @@ from Vessel import Vessel
 import matplotlib.pyplot as plt
 import math
 from scipy.interpolate import CubicSpline
+from random import randrange
+from random import randint
 import time
 
 
@@ -76,17 +78,17 @@ def create_path(length):
         py.append(cs(k))
 
 
-def generate_data():
-    requested_rot = 20
+def generate_data(rrot1, rrot2, name, amount_of_samples, steering_switch):
+    requested_rot = rrot1
     xcoord = []
     ycoord = []
-    f = open("generated_data/training.data", "w+")
-    f.write("#x,y,rot,heading,speed,rrot\n")
+    f = open("generated_data/" + name, "w+")
+    f.write("#x;y;rot;heading;speed;rrot;x';y';heading'\n")
     simulated_vessel = Vessel(0, 0, 0, 0, speed, rot_change, rot_max, rot_min)
-    for i in range(1000):
-        if i > 500:
-            requested_rot = -20
-        f.write('{:.3f},{:.3f},{:.3f},{:.3f},{},{}\n'.format(
+    for i in range(amount_of_samples):
+        if i > steering_switch:
+            requested_rot = rrot2
+        f.write('{:.3f};{:.3f};{:.3f};{:.3f};{};{};'.format(
             simulated_vessel.x,
             simulated_vessel.y,
             simulated_vessel.rot,
@@ -96,22 +98,224 @@ def generate_data():
         xcoord.append(simulated_vessel.x);
         ycoord.append(simulated_vessel.y);
         simulated_vessel.simulate(requested_rot)
+        f.write('{:.3f};{:.3f};{:.3f}\n'.format(
+            simulated_vessel.x,
+            simulated_vessel.y,
+            simulated_vessel.heading
+        ))
     f.close();
     plt.plot(xcoord, ycoord, 'ro', markersize = 1)
     plt.show()
 
 
+def generate_data_relative_with_rot(rrot1, rrot2, name, amount_of_samples, steering_switch):
+    requested_rot = rrot1
+    xcoord = []
+    ycoord = []
+    f = open("generated_data/" + name, "w+")
+    f.write("#rot;heading;speed;rrot;x'-x;y'-y;heading';rot'\n")
+    simulated_vessel = Vessel(0, 0, 0, 0, speed, rot_change, rot_max, rot_min)
+    for i in range(amount_of_samples):
+        if i > steering_switch:
+            requested_rot = rrot2
+        start_x = simulated_vessel.x
+        start_y = simulated_vessel.y
+        f.write('{:.3f};{:.3f};{};{};'.format(
+            simulated_vessel.rot,
+            simulated_vessel.heading,
+            simulated_vessel.speed,
+            requested_rot))
+        xcoord.append(simulated_vessel.x);
+        ycoord.append(simulated_vessel.y);
+        simulated_vessel.simulate(requested_rot)
+        f.write('{:.3f};{:.3f};{:.3f};{:.3f}\n'.format(
+            simulated_vessel.x-start_x,
+            simulated_vessel.y-start_y,
+            simulated_vessel.heading,
+            simulated_vessel.rot
+        ))
+    f.close();
+    plt.plot(xcoord, ycoord, 'ro', markersize = 1)
+    plt.show()
+
+
+def generate_data_relative_with_rot_no_speed(rrot1, rrot2, name, amount_of_samples, steering_switch):
+    requested_rot = rrot1
+    xcoord = []
+    ycoord = []
+    f = open("generated_data/" + name, "w+")
+    f.write("#rot;heading;rrot;x'-x;y'-y;heading';rot'\n")
+    simulated_vessel = Vessel(0, 0, 0, 0, speed, rot_change, rot_max, rot_min)
+    for i in range(amount_of_samples):
+        if i > steering_switch:
+            requested_rot = rrot2
+        start_x = simulated_vessel.x
+        start_y = simulated_vessel.y
+        f.write('{:.3f};{:.3f};{};'.format(
+            simulated_vessel.rot,
+            simulated_vessel.heading,
+            requested_rot))
+        xcoord.append(simulated_vessel.x);
+        ycoord.append(simulated_vessel.y);
+        simulated_vessel.simulate(requested_rot)
+        f.write('{:.3f};{:.3f};{:.3f};{:.3f}\n'.format(
+            simulated_vessel.x-start_x,
+            simulated_vessel.y-start_y,
+            simulated_vessel.heading,
+            simulated_vessel.rot
+        ))
+    f.close();
+    plt.plot(xcoord, ycoord, 'ro', markersize = 1)
+    plt.show()
+
+
+def generate_data_relative_with_relative_everything(rrot1, rrot2, name, amount_of_samples, steering_switch):
+    requested_rot = rrot1
+    xcoord = []
+    ycoord = []
+    f = open("generated_data/" + name, "w+")
+    f.write("#speed;rrot;x'-x;y'-y;heading'-heading;rot'-rot\n")
+    simulated_vessel = Vessel(0, 0, 0, 0, speed, rot_change, rot_max, rot_min)
+    for i in range(amount_of_samples):
+        if i > steering_switch:
+            requested_rot = rrot2
+        start_x = simulated_vessel.x
+        start_y = simulated_vessel.y
+        start_rot = simulated_vessel.rot
+        start_heading = simulated_vessel.heading
+        f.write('{};{};'.format(
+            simulated_vessel.speed,
+            requested_rot))
+        xcoord.append(simulated_vessel.x);
+        ycoord.append(simulated_vessel.y);
+        simulated_vessel.simulate(requested_rot)
+        f.write('{:.3f};{:.3f};{:.3f};{:.3f}\n'.format(
+            simulated_vessel.x-start_x,
+            simulated_vessel.y-start_y,
+            simulated_vessel.heading-start_heading,
+            simulated_vessel.rot-start_rot
+        ))
+    f.close();
+    plt.plot(xcoord, ycoord, 'ro', markersize = 1)
+    plt.show()
+
+
+def generate_data_with_rot(rrot1, rrot2, name, amount_of_samples, steering_switch):
+    requested_rot = rrot1
+    xcoord = []
+    ycoord = []
+    f = open("generated_data/" + name, "w+")
+    f.write("#x;y;rot;heading;speed;rrot;x';y';heading';rot'\n")
+    simulated_vessel = Vessel(0, 0, 0, 0, speed, rot_change, rot_max, rot_min)
+    for i in range(amount_of_samples):
+        if i > steering_switch:
+            requested_rot = rrot2
+        f.write('{:.3f};{:.3f};{:.3f};{:.3f};{};{};'.format(
+            simulated_vessel.x,
+            simulated_vessel.y,
+            simulated_vessel.rot,
+            simulated_vessel.heading,
+            simulated_vessel.speed,
+            requested_rot))
+        xcoord.append(simulated_vessel.x);
+        ycoord.append(simulated_vessel.y);
+        simulated_vessel.simulate(requested_rot)
+        f.write('{:.3f};{:.3f};{:.3f};{:.3f}\n'.format(
+            simulated_vessel.x,
+            simulated_vessel.y,
+            simulated_vessel.heading,
+            simulated_vessel.rot
+        ))
+    f.close();
+    plt.plot(xcoord, ycoord, 'ro', markersize = 1)
+    plt.show()
+
+
+def generate_less_random_data(samples, name):
+    f = open("generated_data/random/" + name, "w+")
+    f.write("#rot;heading;rrot;x'-x;y'-y;heading';rot'\n")
+    for i in range(samples):
+        requested_rot = randint(-10, 10)
+        simulated_vessel = Vessel(randint(-100, 100),
+                                  randint(-100, 100),
+                                  randrange(-180, 180, 5),
+                                  randrange(0, 360, 20), speed, rot_change, rot_max, rot_min)
+        start_x = simulated_vessel.x
+        start_y = simulated_vessel.y
+        f.write('{:.3f};{:.3f};{};'.format(
+            simulated_vessel.rot,
+            simulated_vessel.heading,
+            requested_rot))
+        simulated_vessel.simulate(requested_rot)
+        f.write('{:.3f};{:.3f};{:.3f};{:.3f}\n'.format(
+            simulated_vessel.x - start_x,
+            simulated_vessel.y - start_y,
+            simulated_vessel.heading,
+            simulated_vessel.rot
+        ))
+    f.close();
+
+def generate_random_data(samples, name):
+    f = open("generated_data/random/" + name, "w+")
+    f.write("#rot;heading;rrot;x'-x;y'-y;heading';rot'\n")
+    for i in range(samples):
+        requested_rot = randint(-10, 10)
+        simulated_vessel = Vessel(randint(-100, 100),
+                                  randint(-100, 100),
+                                  randrange(-180, 180, 1),
+                                  randrange(0, 360, 5), speed, rot_change, rot_max, rot_min)
+        start_x = simulated_vessel.x
+        start_y = simulated_vessel.y
+        f.write('{:.3f};{:.3f};{};'.format(
+            simulated_vessel.rot,
+            simulated_vessel.heading,
+            requested_rot))
+        simulated_vessel.simulate(requested_rot)
+        f.write('{:.3f};{:.3f};{:.3f};{:.3f}\n'.format(
+            simulated_vessel.x - start_x,
+            simulated_vessel.y - start_y,
+            simulated_vessel.heading,
+            simulated_vessel.rot
+        ))
+    f.close();
+
+def generate_random_data_rotdot(samples, name):
+    f = open("generated_data/random_rot_dot/" + name, "w+")
+    f.write("#rot;rrot;rot_dot'\n")
+    for i in range(samples):
+        requested_rot = randint(-10, 10)
+        simulated_vessel = Vessel(randint(-100, 100),
+                                  randint(-100, 100),
+                                  randrange(-180, 180, 5),
+                                  randrange(0, 360, 20), speed, rot_change, rot_max, rot_min)
+        start_x = simulated_vessel.x
+        start_y = simulated_vessel.y
+        f.write('{:.3f};{};'.format(
+            simulated_vessel.rot,
+            requested_rot))
+        start_rot = simulated_vessel.rot
+        simulated_vessel.simulate(requested_rot)
+        f.write('{:.3f}\n'.format(
+            simulated_vessel.rot
+        ))
+    f.close();
+
 if __name__ == '__main__':
-    # generate_data()
+    # generate_data_relative_with_rot_no_speed(20, -20, 'training_relative_rot_1k_no_speed.data', 1000, 500)
+    # generate_data_relative_with_rot_no_speed(-5, 8, 'validation_relative_rot_1k_no_speed.data', 1000, 500)
+
+    generate_random_data(200000, 'training_random_200k.data')
+    generate_random_data(200000, 'validation_random_200k.data')
+
     vessel = Vessel(x, y, rot, heading, speed, rot_change, rot_max, rot_min)
     mpc = MPC()
     i = 0
     x = []
     y = []
     create_path(2001)
-    while i < 4000:
+    while i < 2000:
         start = time.time()
-        rrot = mpc.optimize_simple(px, py, vessel)
+        rrot = mpc.optimize_simple_MLP(px, py, vessel)
         stop = time.time();
         print("elapsed time: {}".format(stop-start))
         vessel.simulate(rrot)

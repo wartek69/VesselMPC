@@ -2,19 +2,34 @@ import sys
 import numpy as np
 import copy
 import math
+from sklearn.preprocessing import MinMaxScaler
+
+
+from keras.engine.saving import load_model
+
+
 class MPC:
     #tuning params
-    rot1_max = 10
-    rot1_min = -10
+    rot1_max = 20
+    rot1_min = -20
     rot1_dot = 2
     rot_tmax = 0.65
     rot_tmin = 0.35
     rot_tdot = 0.1
-    rot2_max = 10
-    rot2_min = -10
+    rot2_max = 20
+    rot2_min = -20
     rot2_dot = 2
     prediction_horizon = 240
     heading_weight = 25;
+
+    def __init__(self):
+        input_shape_mlp = 3
+        self.scaler = MinMaxScaler(feature_range=(-1, 1))
+        self.MLP_model = load_model('model/mlp_model_goed_200k_100ep.h5')
+        #determine scaling factor
+        dataset = np.loadtxt("generated_data/random/training_less_random_200k.data", delimiter=";", comments='#')
+        x_train = dataset[:, 0:input_shape_mlp]
+        self.scaler.fit_transform(x_train)
 
     def optimize(self, px, py, vessel_model):
         model = copy.copy(vessel_model)
@@ -110,8 +125,54 @@ class MPC:
                             temp_model.simulate(self.__get_rot(i, temp_model.rot))
                         else:
                             temp_model.simulate(self.__get_rot(k, temp_model.rot))
-                    xte, closest_index = self.__calc_xte_improved(px, py, temp_model)
+                    xte, closest_index = self.__calc_xte_improved(px, py, vessel_model.x, vessel_model.y)
                     cost = self.angular_diff(temp_model.heading, self.__get_heading_curve(px, py, closest_index)) ** 2 * self.heading_weight
+                    cost += xte
+                    if cost < min_cost:
+                        min_cost = cost
+                        best_rot = i
+                        best_rot2 = k
+                        best_trans = l
+        print(best_rot)
+        print(best_rot2)
+        print(best_trans)
+        return self.__get_rot(best_rot, vessel_model.rot)
+
+    # optimization done by either increasing or decreasing the rot using a NN model
+    def optimize_simple_MLP(self, px, py, vessel_model):
+        model = copy.copy(vessel_model)
+        min_cost = sys.maxsize
+        best_rot = 0;
+        for i in range(0, 3, 1):
+            for k in range(0, 3, 1):
+                for l in np.arange(self.rot_tmin, self.rot_tmax, self.rot_tdot):
+                    # vessel model should be reset
+                    coordx = model.x
+                    coordy = model.y
+                    predicted_rot = model.rot
+                    predicted_heading = model.heading
+                    for t in range(self.prediction_horizon):
+                        if t < self.prediction_horizon * l:
+                            prediction_data = np.reshape(np.array(
+                                [predicted_rot, predicted_heading,
+                                 self.__get_rot(i, predicted_rot)]), [1, 3])
+                            prediction_data_scaled = self.scaler.transform(prediction_data)
+                            prediction = self.MLP_model.predict(prediction_data_scaled)
+                        else:
+                            prediction_data = np.reshape(np.array(
+                                [predicted_rot, predicted_heading,
+                                 self.__get_rot(k, predicted_rot)]), [1, 3])
+                            prediction_data_scaled = self.scaler.transform(prediction_data)
+                            prediction = self.MLP_model.predict(prediction_data_scaled)
+                        predicted_x = prediction[:, 0]
+                        predicted_y = prediction[:, 1]
+                        predicted_heading = prediction[:, 2]
+                        predicted_rot = prediction[:, 3]
+                        coordx += predicted_x
+                        coordy += predicted_y
+                    xte, closest_index = self.__calc_xte_improved(px, py, coordx, coordy)
+                    cost = self.angular_diff(predicted_heading, self.__get_heading_curve(px, py,
+                                                                                          closest_index)) ** 2 * self.heading_weight
                     cost += xte
                     if cost < min_cost:
                         min_cost = cost
@@ -137,7 +198,7 @@ class MPC:
                 closest_index = k
         return xte_min, closest_index
 
-    def __calc_xte_improved(self, px, py, vessel_model):
+    def __calc_xte_improved(self, px, py, vesselx, vessely):
         # split the path in checkpoints first and determine closest checkpoint
         step_size = 100
         _closest_index = 0
@@ -154,7 +215,7 @@ class MPC:
                 second_closest_index = closest_index
                 closest_index = temp
             for i in range(closest_index, second_closest_index, step_size):
-                xte = (px[i] - vessel_model.x) ** 2 + (py[i] - vessel_model.y) ** 2
+                xte = (px[i] - vesselx) ** 2 + (py[i] - vessely) ** 2
                 if xte < xte_second_closest:
                     if xte < xte_min:
                         xte_second_closest = xte_min
@@ -166,6 +227,7 @@ class MPC:
                         _second_closest_index = i
             step_size = math.floor(step_size / 10)
         return xte_min, _closest_index
+
 
     def __get_heading_curve(self, px, py, k):
         if py[k+1] > py[k]:
