@@ -51,6 +51,14 @@ class Vessel:
         else:
             self.rot = self.rot
 
+    def simulate_var_rotdot(self, rrot, rotdot, delta_t = 1):
+        rrot = self.__clamp(rrot)
+        self.x = self.x + math.sin(self.heading / 180 * math.pi) * self.speed * delta_t
+        self.y = self.y + math.cos(self.heading / 180 * math.pi) * self.speed * delta_t
+        self.heading = (self.heading + self.rot / secondsPerMin * delta_t) % 360
+        self.rot = self.rot + rotdot * delta_t
+
+
     def __clamp(self, rot):
         if rot > self.rot_max:
             return self.rot_max

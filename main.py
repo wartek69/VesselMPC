@@ -14,8 +14,8 @@ import time
 
 
 heading = 30
-x = -500 # m
-y = -2500 # m
+x = -10 # m
+y = -1600 # m
 rot = 0  # degree/min
 speed = 1 #m/s
 rot_change = 0.03 # degree/s/s
@@ -304,8 +304,8 @@ if __name__ == '__main__':
     # generate_data_relative_with_rot_no_speed(20, -20, 'training_relative_rot_1k_no_speed.data', 1000, 500)
     # generate_data_relative_with_rot_no_speed(-5, 8, 'validation_relative_rot_1k_no_speed.data', 1000, 500)
 
-    generate_random_data(200000, 'training_random_200k.data')
-    generate_random_data(200000, 'validation_random_200k.data')
+    #generate_random_data(200000, 'training_random_200k.data')
+    #generate_random_data(200000, 'validation_random_200k.data')
 
     vessel = Vessel(x, y, rot, heading, speed, rot_change, rot_max, rot_min)
     mpc = MPC()
@@ -315,7 +315,7 @@ if __name__ == '__main__':
     create_path(2001)
     while i < 2000:
         start = time.time()
-        rrot = mpc.optimize_simple_MLP(px, py, vessel)
+        rrot = mpc.optimize_simple(px, py, vessel)
         stop = time.time();
         print("elapsed time: {}".format(stop-start))
         vessel.simulate(rrot)
