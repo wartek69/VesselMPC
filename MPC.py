@@ -7,29 +7,38 @@ from sklearn.preprocessing import MinMaxScaler
 
 from keras.engine.saving import load_model
 
-
+rotdot = True;
 class MPC:
     #tuning params
-    rot1_max = 20
-    rot1_min = -20
-    rot1_dot = 2
+    rot1_max = 180
+    rot1_min = -180
+    rot1_dot = 1
     rot_tmax = 0.65
     rot_tmin = 0.35
     rot_tdot = 0.1
-    rot2_max = 20
-    rot2_min = -20
-    rot2_dot = 2
+    rot2_max = 180
+    rot2_min = -180
+    rot2_dot = 1
     prediction_horizon = 60
-    heading_weight = 25;
+    heading_weight = 5;
 
     def __init__(self):
-        input_shape_mlp = 3
-        self.scaler = MinMaxScaler(feature_range=(-1, 1))
-        self.MLP_model = load_model('model/mlp_model_eenvoudiger_200k_100ep.h5')
-        #determine scaling factor
-        dataset = np.loadtxt("generated_data/random/training_less_random_200k.data", delimiter=";", comments='#')
-        x_train = dataset[:, 0:input_shape_mlp]
-        self.scaler.fit_transform(x_train)
+        if rotdot:
+            input_shape_mlp = 2
+            self.scaler = MinMaxScaler(feature_range=(-1, 1))
+            self.MLP_model = load_model('model/mlp_model_rotdot_10k_1000ep_2hidden.h5')
+            # determine scaling factor
+            dataset = np.loadtxt("generated_data/random_rot_dot/training_less_random_10k.data", delimiter=";", comments='#')
+            x_train = dataset[:, 0:input_shape_mlp]
+            self.scaler.fit_transform(x_train)
+        else:
+            input_shape_mlp = 3
+            self.scaler = MinMaxScaler(feature_range=(-1, 1))
+            self.MLP_model = load_model('model/mlp_model_eenvoudiger_200k_100ep.h5')
+            #determine scaling factor
+            dataset = np.loadtxt("generated_data/random/training_less_random_200k.data", delimiter=";", comments='#')
+            x_train = dataset[:, 0:input_shape_mlp]
+            self.scaler.fit_transform(x_train)
 
     def optimize(self, px, py, vessel_model):
         model = copy.copy(vessel_model)
@@ -208,7 +217,7 @@ class MPC:
                             prediction_data_scaled = self.scaler.transform(prediction_data)
                             prediction = self.MLP_model.predict(prediction_data_scaled)
                         predicted_rotdot = prediction[:, 0]
-
+                        temp_model.simulate_var_rotdot(predicted_rotdot)
                     xte, closest_index = self.__calc_xte_improved(px, py, temp_model.x, temp_model.y)
                     cost = self.angular_diff(temp_model.heading, self.__get_heading_curve(px, py,
                                                                                          closest_index)) ** 2 * self.heading_weight

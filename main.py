@@ -70,8 +70,8 @@ def create_path_curve_cont(length):
         py.append(-k**2)
 
 def create_path(length):
-    x = [0, 500, 2000, 3000]
-    y = [-1500, -800, -1800, 4800]
+    x = [0, 500, 2000, 4000, 6000]
+    y = [-1500, -800, -1800, 2000, -500]
     cs = CubicSpline(x, y)
     for k in range(length):
         px.append(k)
@@ -312,20 +312,26 @@ if __name__ == '__main__':
     i = 0
     x = []
     y = []
-    create_path(2001)
-    while i < 2000:
+    create_path(4001)
+    elapsed_time = []
+    while i < 6000:
         start = time.time()
         rrot = mpc.optimize_simple(px, py, vessel)
         stop = time.time();
         print("elapsed time: {}".format(stop-start))
+        elapsed_time.append(stop-start)
         vessel.simulate(rrot)
         x.append(vessel.x)
         y.append(vessel.y)
         i += 1
         logger.debug(i)
-
+    plt.figure(1)
     plt.plot(x, y, 'ro', markersize = 1)
     plt.plot(px, py, 'bo', markersize = 1)
+
+    fig = plt.figure(2)
+    plt.plot(elapsed_time);
+    fig.suptitle('Elapsed time per epoch')
     #plt.gca().set_ylim([8000, -8000])
     #plt.gca().set_xlim([-200, 200])
     plt.show()
