@@ -314,12 +314,20 @@ if __name__ == '__main__':
     y = []
     create_path(4001)
     elapsed_time = []
+    path_xte = []
+    path_heading_error = []
     while i < 6000:
         start = time.time()
         rrot = mpc.optimize_simple(px, py, vessel)
         stop = time.time();
         print("elapsed time: {}".format(stop-start))
         elapsed_time.append(stop-start)
+
+        xte, index = mpc.calc_xte_improved(px, py, vessel.x, vessel.y)
+        path_xte.append(xte)
+        temp_heading = mpc.get_heading_curve(px, py, index)
+        heading_error = mpc.angular_diff(vessel.heading, temp_heading)
+        path_heading_error.append(heading_error)
         vessel.simulate(rrot)
         x.append(vessel.x)
         y.append(vessel.y)
@@ -332,6 +340,14 @@ if __name__ == '__main__':
     fig = plt.figure(2)
     plt.plot(elapsed_time);
     fig.suptitle('Elapsed time per epoch')
+
+    fig = plt.figure(3)
+    plt.plot(path_xte);
+    fig.suptitle('Path xte')
+
+    fig = plt.figure(4)
+    plt.plot(path_heading_error);
+    fig.suptitle('Heading error')
     #plt.gca().set_ylim([8000, -8000])
     #plt.gca().set_xlim([-200, 200])
     plt.show()

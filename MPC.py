@@ -20,7 +20,7 @@ class MPC:
     rot2_min = -180
     rot2_dot = 1
     prediction_horizon = 60
-    heading_weight = 5;
+    heading_weight = 25;
 
     def __init__(self):
         if rotdot:
@@ -54,9 +54,9 @@ class MPC:
                             temp_model.simulate(i)
                         else:
                             temp_model.simulate(k)
-                    xte, closest_index = self.__calc_xte_improved(px, py, temp_model)
+                    xte, closest_index = self.calc_xte_improved(px, py, temp_model)
                     cost = self.angular_diff(temp_model.heading,
-                                             self.__get_heading_curve(px, py, closest_index)) ** 2 * self.heading_weight
+                                             self.get_heading_curve(px, py, closest_index)) ** 2 * self.heading_weight
                     cost += xte
                     if cost < min_cost:
                         min_cost = cost
@@ -85,9 +85,9 @@ class MPC:
                             temp_model.simulate(self.__get_rot(i, temp_model.rot))
                         else:
                             temp_model.simulate(self.__get_rot(k, temp_model.rot))
-                        xte, closest_index = self.__calc_xte_improved(px, py, temp_model)
-                        cost += (temp_model.heading - self.__get_heading_curve(px, py,
-                                                                               closest_index)) ** 2 * self.heading_weight;
+                        xte, closest_index = self.calc_xte_improved(px, py, temp_model)
+                        cost += (temp_model.heading - self.get_heading_curve(px, py,
+                                                                             closest_index)) ** 2 * self.heading_weight;
                         cost += xte
                         if cost > min_cost:
                             break
@@ -134,9 +134,15 @@ class MPC:
                             temp_model.simulate(self.__get_rot(i, temp_model.rot))
                         else:
                             temp_model.simulate(self.__get_rot(k, temp_model.rot))
-                    xte, closest_index = self.__calc_xte_improved(px, py, vessel_model.x, vessel_model.y)
-                    cost = self.angular_diff(temp_model.heading, self.__get_heading_curve(px, py, closest_index)) ** 2 * self.heading_weight
+                    xte, closest_index = self.calc_xte_improved(px, py, vessel_model.x, vessel_model.y)
+                    #xte_test = self.__calc_xte(px, py, vessel_model)
+                    # print("xte: {}".format(xte))
+                    # print("test: {}".format(xte_test))
+                    # print("heading error: {}".format(self.angular_diff(temp_model.heading, self.get_heading_curve(px, py, closest_index))))
+                    cost = (self.angular_diff(temp_model.heading, self.get_heading_curve(px, py, closest_index)) ** 2) * self.heading_weight
+                    # print("cost1: {}".format(cost))
                     cost += xte
+                    # print("cost2: {}".format(cost))
                     if cost < min_cost:
                         min_cost = cost
                         best_rot = i
@@ -179,9 +185,9 @@ class MPC:
                         predicted_rot = prediction[:, 3]
                         coordx += predicted_x
                         coordy += predicted_y
-                    xte, closest_index = self.__calc_xte_improved(px, py, coordx, coordy)
-                    cost = self.angular_diff(predicted_heading, self.__get_heading_curve(px, py,
-                                                                                          closest_index)) ** 2 * self.heading_weight
+                    xte, closest_index = self.calc_xte_improved(px, py, coordx, coordy)
+                    cost = self.angular_diff(predicted_heading, self.get_heading_curve(px, py,
+                                                                                       closest_index)) ** 2 * self.heading_weight
                     cost += xte
                     if cost < min_cost:
                         min_cost = cost
@@ -218,9 +224,9 @@ class MPC:
                             prediction = self.MLP_model.predict(prediction_data_scaled)
                         predicted_rotdot = prediction[:, 0]
                         temp_model.simulate_var_rotdot(predicted_rotdot)
-                    xte, closest_index = self.__calc_xte_improved(px, py, temp_model.x, temp_model.y)
-                    cost = self.angular_diff(temp_model.heading, self.__get_heading_curve(px, py,
-                                                                                         closest_index)) ** 2 * self.heading_weight
+                    xte, closest_index = self.calc_xte_improved(px, py, temp_model.x, temp_model.y)
+                    cost = self.angular_diff(temp_model.heading, self.get_heading_curve(px, py,
+                                                                                        closest_index)) ** 2 * self.heading_weight
                     cost += xte
                     if cost < min_cost:
                         min_cost = cost
@@ -246,7 +252,7 @@ class MPC:
                 closest_index = k
         return xte_min, closest_index
 
-    def __calc_xte_improved(self, px, py, vesselx, vessely):
+    def calc_xte_improved(self, px, py, vesselx, vessely):
         # split the path in checkpoints first and determine closest checkpoint
         step_size = 100
         _closest_index = 0
@@ -277,7 +283,7 @@ class MPC:
         return xte_min, _closest_index
 
 
-    def __get_heading_curve(self, px, py, k):
+    def get_heading_curve(self, px, py, k):
         if py[k+1] > py[k]:
             try:
                 angle = math.atan((px[k+1] - px[k]) / (py[k+1] - py[k])) / math.pi * 180
