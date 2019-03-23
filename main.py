@@ -14,8 +14,8 @@ import time
 
 
 heading = 30
-x = -10 # m
-y = -1600 # m
+x = -800 # m
+y = 80# m
 rot = 0  # degree/min
 speed = 1 #m/s
 rot_change = 0.03 # degree/s/s
@@ -72,6 +72,14 @@ def create_path_curve_cont(length):
 def create_path(length):
     x = [0, 500, 2000, 4000, 6000]
     y = [-1500, -800, -1800, 2000, -500]
+    cs = CubicSpline(x, y)
+    for k in range(length):
+        px.append(k)
+        py.append(cs(k))
+
+def create_path_v2(length):
+    x = [-900, 500, 2000, 4000, 6000]
+    y = [1500, 2000, 1800, -2000, 500]
     cs = CubicSpline(x, y)
     for k in range(length):
         px.append(k)
@@ -312,7 +320,7 @@ if __name__ == '__main__':
     i = 0
     x = []
     y = []
-    create_path(4001)
+    create_path_v2(4001)
     elapsed_time = []
     path_xte = []
     path_heading_error = []
@@ -324,7 +332,7 @@ if __name__ == '__main__':
         elapsed_time.append(stop-start)
 
         xte, index = mpc.calc_xte_improved(px, py, vessel.x, vessel.y)
-        path_xte.append(xte)
+        path_xte.append(math.sqrt(xte))
         temp_heading = mpc.get_heading_curve(px, py, index)
         heading_error = mpc.angular_diff(vessel.heading, temp_heading)
         path_heading_error.append(heading_error)

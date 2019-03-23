@@ -20,7 +20,7 @@ class MPC:
     rot2_min = -180
     rot2_dot = 1
     prediction_horizon = 60
-    heading_weight = 25;
+    heading_weight = 5;
 
     def __init__(self):
         if rotdot:
@@ -126,28 +126,28 @@ class MPC:
         best_rot = 0;
         for i in range(0, 3, 1):
             for k in range(0, 3, 1):
-                for l in np.arange(self.rot_tmin, self.rot_tmax, self.rot_tdot):
-                    # vessel model should be reset
-                    temp_model = copy.copy(model)
-                    for t in range(self.prediction_horizon):
-                        if t < self.prediction_horizon * l:
-                            temp_model.simulate(self.__get_rot(i, temp_model.rot))
-                        else:
-                            temp_model.simulate(self.__get_rot(k, temp_model.rot))
-                    xte, closest_index = self.calc_xte_improved(px, py, vessel_model.x, vessel_model.y)
-                    #xte_test = self.__calc_xte(px, py, vessel_model)
-                    # print("xte: {}".format(xte))
-                    # print("test: {}".format(xte_test))
-                    # print("heading error: {}".format(self.angular_diff(temp_model.heading, self.get_heading_curve(px, py, closest_index))))
-                    cost = (self.angular_diff(temp_model.heading, self.get_heading_curve(px, py, closest_index)) ** 2) * self.heading_weight
-                    # print("cost1: {}".format(cost))
-                    cost += xte
-                    # print("cost2: {}".format(cost))
-                    if cost < min_cost:
-                        min_cost = cost
-                        best_rot = i
-                        best_rot2 = k
-                        best_trans = l
+                    for l in np.arange(self.rot_tmin, self.rot_tmax, self.rot_tdot):
+                        # vessel model should be reset
+                        temp_model = copy.copy(model)
+                        for t in range(self.prediction_horizon):
+                            if t < self.prediction_horizon * l:
+                                temp_model.simulate(self.__get_rot(i, temp_model.rot))
+                            else:
+                                temp_model.simulate(self.__get_rot(k, temp_model.rot))
+                        xte, closest_index = self.calc_xte_improved(px, py, temp_model.x, temp_model.y)
+                        #xte_test = self.__calc_xte(px, py, vessel_model)
+                        # print("xte: {}\n closest index: {}".format(xte, closest_index))
+                        #print("test: {}".format(xte_test))
+                        # print("heading error: {}".format(self.angular_diff(temp_model.heading, self.get_heading_curve(px, py, closest_index))))
+                        cost = (self.angular_diff(temp_model.heading, self.get_heading_curve(px, py, closest_index)) ** 2) * self.heading_weight
+                        # print("cost1: {}".format(cost))
+                        cost += xte
+                        # print("cost2: {}".format(cost))
+                        if cost < min_cost:
+                            min_cost = cost
+                            best_rot = i
+                            best_rot2 = k
+                            best_trans = l
         print(best_rot)
         print(best_rot2)
         print(best_trans)
