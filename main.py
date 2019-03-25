@@ -14,8 +14,10 @@ import time
 
 
 heading = 30
-x = -800 # m
-y = 80# m
+#x = -800 # m
+#y = 80# m
+x = -10 # m
+y = -1600# m
 rot = 0  # degree/min
 speed = 1 #m/s
 rot_change = 0.03 # degree/s/s
@@ -320,7 +322,7 @@ if __name__ == '__main__':
     i = 0
     x = []
     y = []
-    create_path_v2(4001)
+    create_path(4001)
     elapsed_time = []
     path_xte = []
     path_heading_error = []
@@ -330,13 +332,13 @@ if __name__ == '__main__':
         stop = time.time();
         print("elapsed time: {}".format(stop-start))
         elapsed_time.append(stop-start)
-
-        xte, index = mpc.calc_xte_improved(px, py, vessel.x, vessel.y)
+        vessel.simulate(rrot)
+        xte, index= mpc.calc_xte(px, py, vessel)
+        # xte, index = mpc.calc_xte_improved(px, py, vessel.x, vessel.y)
         path_xte.append(math.sqrt(xte))
         temp_heading = mpc.get_heading_curve(px, py, index)
         heading_error = mpc.angular_diff(vessel.heading, temp_heading)
         path_heading_error.append(heading_error)
-        vessel.simulate(rrot)
         x.append(vessel.x)
         y.append(vessel.y)
         i += 1
@@ -344,17 +346,26 @@ if __name__ == '__main__':
     plt.figure(1)
     plt.plot(x, y, 'ro', markersize = 1)
     plt.plot(px, py, 'bo', markersize = 1)
+    plt.xlabel('x (m)')
+    plt.ylabel('y (m)')
 
     fig = plt.figure(2)
     plt.plot(elapsed_time);
-    fig.suptitle('Elapsed time per epoch')
+    plt.xlabel('iteration (-)')
+    plt.ylabel('elapsed time (s)')
+    fig.suptitle('Elapsed time per iteration')
+
 
     fig = plt.figure(3)
     plt.plot(path_xte);
+    plt.xlabel('iteration (-)')
+    plt.ylabel('xte (m)')
     fig.suptitle('Path xte')
 
     fig = plt.figure(4)
     plt.plot(path_heading_error);
+    plt.xlabel('iteration (-)')
+    plt.ylabel('heading error (degrees)')
     fig.suptitle('Heading error')
     #plt.gca().set_ylim([8000, -8000])
     #plt.gca().set_xlim([-200, 200])

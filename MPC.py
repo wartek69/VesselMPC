@@ -7,7 +7,7 @@ from sklearn.preprocessing import MinMaxScaler
 
 from keras.engine.saving import load_model
 
-rotdot = True;
+rotdot = False;
 class MPC:
     #tuning params
     rot1_max = 180
@@ -135,14 +135,9 @@ class MPC:
                             else:
                                 temp_model.simulate(self.__get_rot(k, temp_model.rot))
                         xte, closest_index = self.calc_xte_improved(px, py, temp_model.x, temp_model.y)
-                        #xte_test = self.__calc_xte(px, py, vessel_model)
-                        # print("xte: {}\n closest index: {}".format(xte, closest_index))
-                        #print("test: {}".format(xte_test))
-                        # print("heading error: {}".format(self.angular_diff(temp_model.heading, self.get_heading_curve(px, py, closest_index))))
+                        #xte, closest_index = self.calc_xte(px, py, temp_model)
                         cost = (self.angular_diff(temp_model.heading, self.get_heading_curve(px, py, closest_index)) ** 2) * self.heading_weight
-                        # print("cost1: {}".format(cost))
                         cost += xte
-                        # print("cost2: {}".format(cost))
                         if cost < min_cost:
                             min_cost = cost
                             best_rot = i
@@ -241,7 +236,7 @@ class MPC:
 
 
     # naive version of calculating xte
-    def __calc_xte(self, px, py, vessel_model):
+    def calc_xte(self, px, py, vessel_model):
         closest_index = -1;
         # calculate xte
         xte_min = sys.maxsize
@@ -252,34 +247,40 @@ class MPC:
                 closest_index = k
         return xte_min, closest_index
 
+    # this method doesn't work 100% since it can choose it checkpoints badly and skip
+    # absolute minimums
     def calc_xte_improved(self, px, py, vesselx, vessely):
         # split the path in checkpoints first and determine closest checkpoint
         step_size = 100
         _closest_index = 0
-        _second_closest_index = len(px)
-        xte_min = 0
+        test = len(px)
+        _second_closest_index = test - 1
+        xte_min = sys.maxsize;
+        xte_second_closest = sys.maxsize;
         while step_size != 0:
             closest_index = _closest_index
             second_closest_index = _second_closest_index
-            xte_min = sys.maxsize;
-            xte_second_closest = sys.maxsize;
             if second_closest_index < closest_index:
                 # swap them places to allow the for loop to evaluate
                 temp = second_closest_index
                 second_closest_index = closest_index
                 closest_index = temp
-            for i in range(closest_index, second_closest_index, step_size):
+            # only works for paths that have a length-1 that can be divided by step size
+            for i in range(closest_index, second_closest_index + step_size, step_size):
                 xte = (px[i] - vesselx) ** 2 + (py[i] - vessely) ** 2
+                # if it equals we ignore it, an extra feature might be to make use of the
+                # equals and check first in what direction the vessel is going
                 if xte < xte_second_closest:
                     if xte < xte_min:
                         xte_second_closest = xte_min
                         _second_closest_index = _closest_index
                         xte_min = xte
                         _closest_index = i
-                    else:
+                    elif xte < xte_second_closest and xte != xte_min:
                         xte_second_closest = xte
                         _second_closest_index = i
             step_size = math.floor(step_size / 10)
+        print('closest: {}\n second_closes: {} \n'.format(_closest_index, _second_closest_index))
         return xte_min, _closest_index
 
 
