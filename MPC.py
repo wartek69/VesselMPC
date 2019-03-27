@@ -1,13 +1,20 @@
 import sys
+import time
+
 import numpy as np
 import copy
 import math
+
+import logging
 from sklearn.preprocessing import MinMaxScaler
 
 
 from keras.engine.saving import load_model
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.DEBUG)
+rotdot = True;
 
-rotdot = False;
+
 class MPC:
     #tuning params
     rot1_max = 180
@@ -19,8 +26,8 @@ class MPC:
     rot2_max = 180
     rot2_min = -180
     rot2_dot = 1
-    prediction_horizon = 60
-    heading_weight = 5;
+    prediction_horizon = 240
+    heading_weight = 15;
 
     def __init__(self):
         if rotdot:
@@ -148,6 +155,7 @@ class MPC:
         print(best_trans)
         return self.__get_rot(best_rot, vessel_model.rot)
 
+
     # optimization done by either increasing or decreasing the rot using a NN model
     def optimize_simple_MLP(self, px, py, vessel_model):
         model = copy.copy(vessel_model)
@@ -210,13 +218,12 @@ class MPC:
                             prediction_data = np.reshape(np.array(
                                 [temp_model.rot, self.__get_rot(i, temp_model.rot)]), [1, 2])
                             prediction_data_scaled = self.scaler.transform(prediction_data)
-                            prediction = self.MLP_model.predict(prediction_data_scaled)
                         else:
                             prediction_data = np.reshape(np.array(
                                 [temp_model.rot,
                                  self.__get_rot(k, temp_model.rot)]), [1, 2])
                             prediction_data_scaled = self.scaler.transform(prediction_data)
-                            prediction = self.MLP_model.predict(prediction_data_scaled)
+                        prediction = self.MLP_model.predict(prediction_data_scaled)
                         predicted_rotdot = prediction[:, 0]
                         temp_model.simulate_var_rotdot(predicted_rotdot)
                     xte, closest_index = self.calc_xte_improved(px, py, temp_model.x, temp_model.y)
@@ -232,6 +239,61 @@ class MPC:
         print(best_rot2)
         print(best_trans)
         return self.__get_rot(best_rot, vessel_model.rot)
+
+    def optimize_simple_MLP_rotdot_batch(self, px, py, vessel_model):
+        outputs = []
+        temp_models = []
+        batch = 9
+        start = time.time()
+        model = copy.copy(vessel_model)
+        min_cost = sys.maxsize
+        best_rot = 0;
+        control_inputs = np.zeros((batch, 2))
+        rot_var = np.zeros((batch, 2))
+        # prepare the batches
+        k = 0;
+        for i in range(batch):
+            if k > 2:
+                k = 0
+            temp_models.append(copy.copy(model))
+            rot_var[i, 1] = k
+            k += 1
+        for l in np.arange(self.rot_tmin, self.rot_tmax, self.rot_tdot):
+            for t in range(self.prediction_horizon):
+                for i in range(len(temp_models)):
+                    control_inputs[i, 0] = temp_models[i].rot
+                    control_inputs[i, 1] = self.__get_rot(rot_var[i, 1], temp_models[i].rot)
+                # control_inputs = control_inputs.reshape(batch, 1, 2)
+                control_inputs_scaled = self.scaler.transform(control_inputs)
+
+                prediction_batch = self.MLP_model.predict(control_inputs_scaled)
+                stop = time.time();
+                print("prediction time: {}".format(stop - start))
+                counter = 0;
+                for i in range(0, 3, 1):
+                    for k in range(0, 3, 1):
+                        if t < self.prediction_horizon * l:
+                            prediction = prediction_batch[i]
+                        else:
+                            prediction = prediction_batch[k]
+                        predicted_rotdot = prediction[0]
+                        temp_models[counter].simulate_var_rotdot(predicted_rotdot)
+                        outputs.append((temp_models[counter].x, temp_models[counter].y, temp_models[counter].heading))
+                        counter += 1
+            for x in outputs:
+                xte, closest_index = self.calc_xte_improved(px, py, x[0], x[1])
+                cost = self.angular_diff(x[2], self.get_heading_curve(px, py, closest_index)) ** 2 * self.heading_weight
+                cost += xte
+                if cost < min_cost:
+                    min_cost = cost
+                    best_rot = i
+                    best_rot2 = k
+                    best_trans = l
+        print(best_rot)
+        print(best_rot2)
+        print(best_trans)
+        return self.__get_rot(best_rot, vessel_model.rot)
+
 
 
 
@@ -280,11 +342,12 @@ class MPC:
                         xte_second_closest = xte
                         _second_closest_index = i
             step_size = math.floor(step_size / 10)
-        print('closest: {}\n second_closes: {} \n'.format(_closest_index, _second_closest_index))
         return xte_min, _closest_index
 
-
     def get_heading_curve(self, px, py, k):
+        if k+1 >= len(px) or k+1 >= len(py):
+            k -= 1
+
         if py[k+1] > py[k]:
             try:
                 angle = math.atan((px[k+1] - px[k]) / (py[k+1] - py[k])) / math.pi * 180

@@ -14,10 +14,10 @@ import time
 
 
 heading = 30
-#x = -800 # m
-#y = 80# m
-x = -10 # m
-y = -1600# m
+x = -800 # m
+y = 80# m
+#x = -10 # m
+#y = -1600# m
 rot = 0  # degree/min
 speed = 1 #m/s
 rot_change = 0.03 # degree/s/s
@@ -82,6 +82,14 @@ def create_path(length):
 def create_path_v2(length):
     x = [-900, 500, 2000, 4000, 6000]
     y = [1500, 2000, 1800, -2000, 500]
+    cs = CubicSpline(x, y)
+    for k in range(length):
+        px.append(k)
+        py.append(cs(k))
+
+def create_path_v3(length):
+    x = [-900, 500 , 1500, 1900, 2500]
+    y = [0, -100, 200, -100, 0]
     cs = CubicSpline(x, y)
     for k in range(length):
         px.append(k)
@@ -265,6 +273,7 @@ def generate_less_random_data(samples, name):
         ))
     f.close();
 
+
 def generate_random_data(samples, name):
     f = open("generated_data/random/" + name, "w+")
     f.write("#rot;heading;rrot;x'-x;y'-y;heading';rot'\n")
@@ -288,6 +297,7 @@ def generate_random_data(samples, name):
             simulated_vessel.rot
         ))
     f.close();
+
 
 def generate_random_data_rotdot(samples, name):
     f = open("generated_data/random_rot_dot/" + name, "w+")
@@ -322,9 +332,10 @@ if __name__ == '__main__':
     i = 0
     x = []
     y = []
-    create_path(4001)
+    create_path_v3(4001)
     elapsed_time = []
     path_xte = []
+    mpc_xte = []
     path_heading_error = []
     while i < 6000:
         start = time.time()
@@ -334,7 +345,8 @@ if __name__ == '__main__':
         elapsed_time.append(stop-start)
         vessel.simulate(rrot)
         xte, index= mpc.calc_xte(px, py, vessel)
-        # xte, index = mpc.calc_xte_improved(px, py, vessel.x, vessel.y)
+        xtempc, indexmpc = mpc.calc_xte_improved(px, py, vessel.x, vessel.y)
+        mpc_xte.append(math.sqrt(xtempc))
         path_xte.append(math.sqrt(xte))
         temp_heading = mpc.get_heading_curve(px, py, index)
         heading_error = mpc.angular_diff(vessel.heading, temp_heading)
@@ -343,11 +355,14 @@ if __name__ == '__main__':
         y.append(vessel.y)
         i += 1
         logger.debug(i)
-    plt.figure(1)
-    plt.plot(x, y, 'ro', markersize = 1)
-    plt.plot(px, py, 'bo', markersize = 1)
+    fig = plt.figure(1)
+    plt.plot(x, y, 'ro', markersize = 1, label='Vessel')
+    plt.plot(px, py, 'bo', markersize = 1, label='Track')
     plt.xlabel('x (m)')
     plt.ylabel('y (m)')
+    plt.legend()
+    fig.suptitle('Simulated vessel')
+
 
     fig = plt.figure(2)
     plt.plot(elapsed_time);
@@ -367,6 +382,9 @@ if __name__ == '__main__':
     plt.xlabel('iteration (-)')
     plt.ylabel('heading error (degrees)')
     fig.suptitle('Heading error')
+
+    fig = plt.figure(5)
+    plt.plot(mpc_xte);
     #plt.gca().set_ylim([8000, -8000])
     #plt.gca().set_xlim([-200, 200])
     plt.show()
