@@ -342,7 +342,7 @@ if __name__ == '__main__':
     while i < 6000:
         start = time.time()
 
-        rrot = mpc.optimize_simple_MLP_rotdot_batch(px, py, vessel)
+        rrot = mpc.optimize_simple_MLP_batch(px, py, vessel)
 
         stop = time.time()
         print("elapsed time: {}".format(stop-start))

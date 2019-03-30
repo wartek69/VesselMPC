@@ -12,7 +12,7 @@ from sklearn.preprocessing import MinMaxScaler
 from keras.engine.saving import load_model
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.DEBUG)
-rotdot = True;
+rotdot = False;
 
 
 class MPC:
@@ -150,6 +150,66 @@ class MPC:
                             best_rot = i
                             best_rot2 = k
                             best_trans = l
+        print(best_rot)
+        print(best_rot2)
+        print(best_trans)
+        return self.__get_rot(best_rot, vessel_model.rot)
+
+    def optimize_simple_MLP_batch(self, px, py, vessel_model):
+        # do not edit the original vessel object!
+        model = copy.copy(vessel_model)
+        # we will have multiple vessel that sail simultaneously to test all the possibilities
+        vessels = []
+        control_inputs = []
+
+
+        # create the control inputs
+        for rot1 in range(3):
+            for rot2 in range(3):
+                for transition_time in np.arange(self.rot_tmin, self.rot_tmax, self.rot_tdot):
+                    control_inputs.append((rot1, rot2, transition_time))
+                    # each control input should have a corresponding vessel
+                    vessels.append((model.x, model.y, model.rot, model.heading))
+        # prepare the prediction input matrix
+        prediction_input = np.zeros((len(control_inputs), 3))
+
+        # the actual predictions
+        for t in range(self.prediction_horizon):
+            for index, control_action in enumerate(control_inputs):
+                # prepare the data to make predictions
+                if t < self.prediction_horizon * control_action[2]:
+                    prediction_input[index, 0] = vessels[index][2] #rot
+                    prediction_input[index, 1] = vessels[index][3]
+                    prediction_input[index, 2] = self.__get_rot(control_action[0], vessels[index][2])
+                else:
+                    prediction_input[index, 0] = vessels[index][2] #rot
+                    prediction_input[index, 1] = vessels[index][3]
+                    prediction_input[index, 2] = self.__get_rot(control_action[1], vessels[index][2])
+
+            prediction_input_scaled = self.scaler.transform(prediction_input)
+            prediction_output = self.MLP_model.predict(prediction_input_scaled)
+
+            # update all the vessels simultaneously
+            for index, vessel in enumerate(vessels):
+                predicted_x = prediction_output[index, 0]
+                predicted_y = prediction_output[index, 1]
+                predicted_heading = prediction_output[index, 2]
+                predicted_rot = prediction_output[index, 3]
+                vessels[index] = (vessel[0] + predicted_x, vessel[1] + predicted_y, predicted_rot, predicted_heading)
+
+        min_cost = sys.maxsize
+        best_rot = 0;
+        # all the vessels arrived, check the best
+        for index, vessel in enumerate(vessels):
+            xte, closest_index = self.calc_xte_improved(px, py, vessel[0], vessel[1])
+            cost = self.angular_diff(vessel[3], self.get_heading_curve(px, py,
+                                                                            closest_index)) ** 2 * self.heading_weight
+            cost += xte
+            if cost < min_cost:
+                min_cost = cost
+                best_rot = control_inputs[index][0]
+                best_rot2 = control_inputs[index][1]
+                best_trans = control_inputs[index][2]
         print(best_rot)
         print(best_rot2)
         print(best_trans)
