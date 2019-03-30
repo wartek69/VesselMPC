@@ -16,6 +16,8 @@ import time
 heading = 30
 x = -800 # m
 y = 80# m
+
+
 #x = -10 # m
 #y = -1600# m
 rot = 0  # degree/min
@@ -113,15 +115,15 @@ def generate_data(rrot1, rrot2, name, amount_of_samples, steering_switch):
             simulated_vessel.heading,
             simulated_vessel.speed,
             requested_rot))
-        xcoord.append(simulated_vessel.x);
-        ycoord.append(simulated_vessel.y);
+        xcoord.append(simulated_vessel.x)
+        ycoord.append(simulated_vessel.y)
         simulated_vessel.simulate(requested_rot)
         f.write('{:.3f};{:.3f};{:.3f}\n'.format(
             simulated_vessel.x,
             simulated_vessel.y,
             simulated_vessel.heading
         ))
-    f.close();
+    f.close()
     plt.plot(xcoord, ycoord, 'ro', markersize = 1)
     plt.show()
 
@@ -143,8 +145,8 @@ def generate_data_relative_with_rot(rrot1, rrot2, name, amount_of_samples, steer
             simulated_vessel.heading,
             simulated_vessel.speed,
             requested_rot))
-        xcoord.append(simulated_vessel.x);
-        ycoord.append(simulated_vessel.y);
+        xcoord.append(simulated_vessel.x)
+        ycoord.append(simulated_vessel.y)
         simulated_vessel.simulate(requested_rot)
         f.write('{:.3f};{:.3f};{:.3f};{:.3f}\n'.format(
             simulated_vessel.x-start_x,
@@ -152,7 +154,7 @@ def generate_data_relative_with_rot(rrot1, rrot2, name, amount_of_samples, steer
             simulated_vessel.heading,
             simulated_vessel.rot
         ))
-    f.close();
+    f.close()
     plt.plot(xcoord, ycoord, 'ro', markersize = 1)
     plt.show()
 
@@ -173,8 +175,8 @@ def generate_data_relative_with_rot_no_speed(rrot1, rrot2, name, amount_of_sampl
             simulated_vessel.rot,
             simulated_vessel.heading,
             requested_rot))
-        xcoord.append(simulated_vessel.x);
-        ycoord.append(simulated_vessel.y);
+        xcoord.append(simulated_vessel.x)
+        ycoord.append(simulated_vessel.y)
         simulated_vessel.simulate(requested_rot)
         f.write('{:.3f};{:.3f};{:.3f};{:.3f}\n'.format(
             simulated_vessel.x-start_x,
@@ -182,7 +184,7 @@ def generate_data_relative_with_rot_no_speed(rrot1, rrot2, name, amount_of_sampl
             simulated_vessel.heading,
             simulated_vessel.rot
         ))
-    f.close();
+    f.close()
     plt.plot(xcoord, ycoord, 'ro', markersize = 1)
     plt.show()
 
@@ -204,8 +206,8 @@ def generate_data_relative_with_relative_everything(rrot1, rrot2, name, amount_o
         f.write('{};{};'.format(
             simulated_vessel.speed,
             requested_rot))
-        xcoord.append(simulated_vessel.x);
-        ycoord.append(simulated_vessel.y);
+        xcoord.append(simulated_vessel.x)
+        ycoord.append(simulated_vessel.y)
         simulated_vessel.simulate(requested_rot)
         f.write('{:.3f};{:.3f};{:.3f};{:.3f}\n'.format(
             simulated_vessel.x-start_x,
@@ -213,7 +215,7 @@ def generate_data_relative_with_relative_everything(rrot1, rrot2, name, amount_o
             simulated_vessel.heading-start_heading,
             simulated_vessel.rot-start_rot
         ))
-    f.close();
+    f.close()
     plt.plot(xcoord, ycoord, 'ro', markersize = 1)
     plt.show()
 
@@ -235,8 +237,8 @@ def generate_data_with_rot(rrot1, rrot2, name, amount_of_samples, steering_switc
             simulated_vessel.heading,
             simulated_vessel.speed,
             requested_rot))
-        xcoord.append(simulated_vessel.x);
-        ycoord.append(simulated_vessel.y);
+        xcoord.append(simulated_vessel.x)
+        ycoord.append(simulated_vessel.y)
         simulated_vessel.simulate(requested_rot)
         f.write('{:.3f};{:.3f};{:.3f};{:.3f}\n'.format(
             simulated_vessel.x,
@@ -244,7 +246,7 @@ def generate_data_with_rot(rrot1, rrot2, name, amount_of_samples, steering_switc
             simulated_vessel.heading,
             simulated_vessel.rot
         ))
-    f.close();
+    f.close()
     plt.plot(xcoord, ycoord, 'ro', markersize = 1)
     plt.show()
 
@@ -271,7 +273,7 @@ def generate_less_random_data(samples, name):
             simulated_vessel.heading,
             simulated_vessel.rot
         ))
-    f.close();
+    f.close()
 
 
 def generate_random_data(samples, name):
@@ -318,7 +320,7 @@ def generate_random_data_rotdot(samples, name):
         f.write('{:.3f}\n'.format(
             simulated_vessel.rot
         ))
-    f.close();
+    f.close()
 
 if __name__ == '__main__':
     # generate_data_relative_with_rot_no_speed(20, -20, 'training_relative_rot_1k_no_speed.data', 1000, 500)
@@ -332,21 +334,26 @@ if __name__ == '__main__':
     i = 0
     x = []
     y = []
-    create_path_v3(4001)
+    create_path_v2(4001)
     elapsed_time = []
     path_xte = []
     mpc_xte = []
     path_heading_error = []
     while i < 6000:
         start = time.time()
-        rrot = mpc.optimize_simple(px, py, vessel)
-        stop = time.time();
+
+        rrot = mpc.optimize_simple_MLP_rotdot_batch(px, py, vessel)
+
+        stop = time.time()
         print("elapsed time: {}".format(stop-start))
         elapsed_time.append(stop-start)
+
         vessel.simulate(rrot)
+
         xte, index= mpc.calc_xte(px, py, vessel)
         xtempc, indexmpc = mpc.calc_xte_improved(px, py, vessel.x, vessel.y)
         mpc_xte.append(math.sqrt(xtempc))
+        #path xte is more accurate
         path_xte.append(math.sqrt(xte))
         temp_heading = mpc.get_heading_curve(px, py, index)
         heading_error = mpc.angular_diff(vessel.heading, temp_heading)
@@ -355,6 +362,8 @@ if __name__ == '__main__':
         y.append(vessel.y)
         i += 1
         logger.debug(i)
+
+    #plots
     fig = plt.figure(1)
     plt.plot(x, y, 'ro', markersize = 1, label='Vessel')
     plt.plot(px, py, 'bo', markersize = 1, label='Track')
@@ -365,7 +374,7 @@ if __name__ == '__main__':
 
 
     fig = plt.figure(2)
-    plt.plot(elapsed_time);
+    plt.plot(elapsed_time)
     plt.xlabel('iteration (-)')
     plt.ylabel('elapsed time (s)')
     fig.suptitle('Elapsed time per iteration')

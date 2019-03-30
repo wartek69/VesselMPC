@@ -26,8 +26,8 @@ class MPC:
     rot2_max = 180
     rot2_min = -180
     rot2_dot = 1
-    prediction_horizon = 240
-    heading_weight = 15;
+    prediction_horizon = 60
+    heading_weight = 5;
 
     def __init__(self):
         if rotdot:
@@ -241,60 +241,58 @@ class MPC:
         return self.__get_rot(best_rot, vessel_model.rot)
 
     def optimize_simple_MLP_rotdot_batch(self, px, py, vessel_model):
-        outputs = []
-        temp_models = []
-        batch = 9
-        start = time.time()
+        # do not edit the original vessel object!
         model = copy.copy(vessel_model)
+        # we will have multiple vessel that sail simultaneously to test all the possibilities
+        vessels = []
+        control_inputs = []
+
+
+        # create the control inputs
+        for rot1 in range(3):
+            for rot2 in range(3):
+                for transition_time in np.arange(self.rot_tmin, self.rot_tmax, self.rot_tdot):
+                    control_inputs.append((rot1, rot2, transition_time))
+                    # each control input should have a corresponding vessel
+                    vessels.append(copy.copy(model))
+        # prepare the prediction input matrix
+        prediction_input = np.zeros((len(control_inputs), 2))
+
+        # the actual predictions
+        for t in range(self.prediction_horizon):
+            for index, control_action in enumerate(control_inputs):
+                # prepare the data to make predictions
+                if t < self.prediction_horizon * control_action[2]:
+                    prediction_input[index, 0] = vessels[index].rot
+                    prediction_input[index, 1] = self.__get_rot(control_action[0], vessels[index].rot)
+                else:
+                    prediction_input[index, 0] = vessels[index].rot;
+                    prediction_input[index, 1] = self.__get_rot(control_action[1], vessels[index].rot)
+
+            prediction_input_scaled = self.scaler.transform(prediction_input)
+            prediction_output = self.MLP_model.predict(prediction_input_scaled)
+
+            # let the vessel sail simultaneously
+            for index, vessel in enumerate(vessels):
+                vessel.simulate_var_rotdot(prediction_output[index])
+
         min_cost = sys.maxsize
         best_rot = 0;
-        control_inputs = np.zeros((batch, 2))
-        rot_var = np.zeros((batch, 2))
-        # prepare the batches
-        k = 0;
-        for i in range(batch):
-            if k > 2:
-                k = 0
-            temp_models.append(copy.copy(model))
-            rot_var[i, 1] = k
-            k += 1
-        for l in np.arange(self.rot_tmin, self.rot_tmax, self.rot_tdot):
-            for t in range(self.prediction_horizon):
-                for i in range(len(temp_models)):
-                    control_inputs[i, 0] = temp_models[i].rot
-                    control_inputs[i, 1] = self.__get_rot(rot_var[i, 1], temp_models[i].rot)
-                # control_inputs = control_inputs.reshape(batch, 1, 2)
-                control_inputs_scaled = self.scaler.transform(control_inputs)
-
-                prediction_batch = self.MLP_model.predict(control_inputs_scaled)
-                stop = time.time();
-                print("prediction time: {}".format(stop - start))
-                counter = 0;
-                for i in range(0, 3, 1):
-                    for k in range(0, 3, 1):
-                        if t < self.prediction_horizon * l:
-                            prediction = prediction_batch[i]
-                        else:
-                            prediction = prediction_batch[k]
-                        predicted_rotdot = prediction[0]
-                        temp_models[counter].simulate_var_rotdot(predicted_rotdot)
-                        outputs.append((temp_models[counter].x, temp_models[counter].y, temp_models[counter].heading))
-                        counter += 1
-            for x in outputs:
-                xte, closest_index = self.calc_xte_improved(px, py, x[0], x[1])
-                cost = self.angular_diff(x[2], self.get_heading_curve(px, py, closest_index)) ** 2 * self.heading_weight
-                cost += xte
-                if cost < min_cost:
-                    min_cost = cost
-                    best_rot = i
-                    best_rot2 = k
-                    best_trans = l
+        # all the vessels arrived, check the best
+        for index, vessel in enumerate(vessels):
+            xte, closest_index = self.calc_xte_improved(px, py, vessel.x, vessel.y)
+            cost = self.angular_diff(vessel.heading, self.get_heading_curve(px, py,
+                                                                            closest_index)) ** 2 * self.heading_weight
+            cost += xte
+            if cost < min_cost:
+                min_cost = cost
+                best_rot = control_inputs[index][0]
+                best_rot2 = control_inputs[index][1]
+                best_trans = control_inputs[index][2]
         print(best_rot)
         print(best_rot2)
         print(best_trans)
         return self.__get_rot(best_rot, vessel_model.rot)
-
-
 
 
     # naive version of calculating xte
