@@ -14,12 +14,12 @@ import time
 
 
 heading = 30
-x = -800 # m
-y = 80# m
+#x = -800 # m
+#y = 80# m
 
 
-#x = -10 # m
-#y = -1600# m
+x = -10 # m
+y = -1600# m
 rot = 0  # degree/min
 speed = 1 #m/s
 rot_change = 0.03 # degree/s/s
@@ -334,15 +334,16 @@ if __name__ == '__main__':
     i = 0
     x = []
     y = []
-    create_path_v2(4001)
+    create_path(4001)
     elapsed_time = []
     path_xte = []
     mpc_xte = []
     path_heading_error = []
     while i < 6000:
         start = time.time()
-
-        rrot = mpc.optimize_simple_MLP_batch(px, py, vessel)
+        if i == 423:
+            print("test")
+        rrot = mpc.optimize_simple_MLP_rotdot_batch(px, py, vessel)
 
         stop = time.time()
         print("elapsed time: {}".format(stop-start))

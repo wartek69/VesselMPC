@@ -12,7 +12,7 @@ from sklearn.preprocessing import MinMaxScaler
 from keras.engine.saving import load_model
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.DEBUG)
-rotdot = False;
+rotdot = True;
 
 
 class MPC:
