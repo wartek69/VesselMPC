@@ -26,7 +26,7 @@ class MPC:
     rot2_max = 180
     rot2_min = -180
     rot2_dot = 1
-    prediction_horizon = 60
+    prediction_horizon = 240
     heading_weight = 5;
 
     def __init__(self):
