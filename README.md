@@ -2,6 +2,8 @@
 Model predictive controller (MPC) to guide a vessel according a path for the master thesis of autonomous navigation of inland vessels.
 MPC basically simulates virtual vessels and gives each virtual vessel a different input. At the end of the simulations the input of the best performing vessel gets taken and fed into the real vessel after which the process is repeated. In the proposed MPC three different models can be used, two of them are obtained using neural networks.
 
+![MPC overview](img/overview.png)
+
 # Vessel simulator
 To test out the proposed MPC a vessel simulator was constructed. The simulator is based on basic equations from physics and can be seen in the picture below.
 
