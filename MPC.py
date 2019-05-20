@@ -47,6 +47,7 @@ class MPC:
             x_train = dataset[:, 0:input_shape_mlp]
             self.scaler.fit_transform(x_train)
 
+    # Non optimal control since too much possibilities are simulated -> bad performance
     def optimize(self, px, py, vessel_model):
         model = copy.copy(vessel_model)
         min_cost = sys.maxsize
@@ -76,7 +77,7 @@ class MPC:
         return best_rot
 
     # optimization done by either increasing or decreasing the rot
-    # the cost is recalculated every iteration
+    # the cost is recalculated every iteration -> bad performance since the predictive behaviour is gone
     def optimize_simple_accurate(self, px, py, vessel_model):
         model = copy.copy(vessel_model)
         min_cost = sys.maxsize
@@ -108,6 +109,7 @@ class MPC:
         print(best_trans)
         return self.__get_rot(best_rot, vessel_model.rot)
 
+    # Since only one ROT is used the predictive behaviour is gone
     def optimize_one_rot(self, px, py, vessel_model):
         model = copy.copy(vessel_model)
         min_cost = sys.maxsize
@@ -155,6 +157,7 @@ class MPC:
         print(best_trans)
         return self.__get_rot(best_rot, vessel_model.rot)
 
+    #Good performance by batching the prediction data
     def optimize_simple_MLP_batch(self, px, py, vessel_model):
         # do not edit the original vessel object!
         model = copy.copy(vessel_model)
@@ -368,7 +371,7 @@ class MPC:
         return xte_min, closest_index
 
     # this method doesn't work 100% since it can choose it checkpoints badly and skip
-    # absolute minimums
+    # absolute minima
     def calc_xte_improved(self, px, py, vesselx, vessely):
         # split the path in checkpoints first and determine closest checkpoint
         step_size = 100
