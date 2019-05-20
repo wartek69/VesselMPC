@@ -1,7 +1,6 @@
 import logging
 import sys
 import copy
-from Coords import Coords
 import numpy as np
 from MPC import MPC
 from Vessel import Vessel
