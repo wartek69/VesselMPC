@@ -7,7 +7,7 @@ MPC basically simulates virtual vessels and gives each virtual vessel a differen
 # Vessel simulator
 To test out the proposed MPC a vessel simulator was constructed. The simulator is based on basic equations from physics and can be seen in the picture below.
 
-![simulator equations](img/equations.png)
+![simulator equations](img/equationss.png)
 
 Take note that all the physics of the vessel can be abstracted to the rotdot parameter in the equations. This is the first deravitive of the Rate-of-Turn (ROT) and describes how was the ROT of the vessel can change in time.
 The equations do not have any notion of external disturbance such as win and water streams.
